@@ -20,7 +20,7 @@ would mean the program would require constant maintenance to keep up with new re
 Features
 --------
 
-- (WIP) Comprehensive list of plugins whicha re natively supported
+- (WIP) Comprehensive list of plugins which are natively supported
 - Support for getting any DevBukkit plugins dynamically
 - Can install many versions of CraftBukkit from their release streams (Release, Beta, Dev) via utilisation of their API
 - The program can generate a working startup script for the Bukkit instance given some information from the user
