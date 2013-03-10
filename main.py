@@ -133,7 +133,7 @@ class pluginSetupGui(QtGui.QDialog):
 
 
         self.setLayout(self.grid)
-        self.setWindowTitle('Mineraft - Plugin Setup GUI')
+        self.setWindowTitle('Mineraft - Plugin Setup')
         self.show()
         self.pickVersionComboBox.currentIndexChanged.connect(self.pickVersionComboBoxIndexChange)
         self.downloadPlugin.clicked.connect(self.downloadPluginButtonPress)
