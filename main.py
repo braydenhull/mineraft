@@ -16,6 +16,8 @@ import os
 from zipfile import ZipFile
 #from minecraftQuery import MinecraftQuery
 import psutil
+import socket
+import struct
 
 # This guy is pro http://stackoverflow.com/a/9662362/2077881
 TAG_RE = re.compile(r'<[^>]+>')
@@ -564,12 +566,7 @@ def main():
     ex = managerGui()
     sys.exit(app.exec_())
 
-__author__ = 'Dinnerbone'
 # With thanks to Dinnerbone for this!
-
-import socket
-import struct
-
 class MinecraftQuery:
     MAGIC_PREFIX = '\xFE\xFD'
     PACKET_TYPE_CHALLENGE = 9
