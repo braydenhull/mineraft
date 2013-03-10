@@ -133,7 +133,7 @@ class pluginSetupGui(QtGui.QDialog):
 
 
         self.setLayout(self.grid)
-        self.setWindowTitle('QtFrame')
+        self.setWindowTitle('Mineraft - Plugin Setup GUI')
         self.show()
         self.pickVersionComboBox.currentIndexChanged.connect(self.pickVersionComboBoxIndexChange)
         self.downloadPlugin.clicked.connect(self.downloadPluginButtonPress)
@@ -183,7 +183,7 @@ class pluginSetupGui(QtGui.QDialog):
         essGrid.addWidget(self.downloadEssentialsPlugin,4,1)
         #essGrid.addWidget(self.essentialsInstruction,4,2)
         self.setLayout(essGrid)
-        self.setWindowTitle('QtFrame')
+        self.setWindowTitle('Mineraft - Essentials Setup')
         self.show()
         self.downloadEssentialsPlugin.clicked.connect(self.downloadEssentials)
         self.pickEssentialsEditionComboBox.currentIndexChanged.connect(self.essentialsEditionIndexChange)
@@ -348,7 +348,7 @@ class managerGui(QtGui.QDialog):
         # grid.addWidget(self.bukkitVersionsLabel,4,0)
 
         self.setLayout(self.grid)
-        self.setWindowTitle('QtFrame')
+        self.setWindowTitle('Mineraft')
         self.show()
         self.getBukkit.clicked.connect(self.getBukkitButtonPress)
         self.bukkitEditions.currentIndexChanged.connect(self.bukkitEditionIndexChange)
