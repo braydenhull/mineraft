@@ -348,7 +348,7 @@ class managerGui(QtGui.QDialog):
         # grid.addWidget(self.bukkitVersionsLabel,4,0)
 
         self.setLayout(self.grid)
-        self.setWindowTitle('Mineraft')
+        self.setWindowTitle('Mineraft - TC test')
         self.show()
         self.getBukkit.clicked.connect(self.getBukkitButtonPress)
         self.bukkitEditions.currentIndexChanged.connect(self.bukkitEditionIndexChange)
