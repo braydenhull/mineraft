@@ -13,6 +13,7 @@ from PyQt4.QtGui import QApplication, QDialog, QProgressBar, QLabel, QPushButton
 from PyQt4.QtNetwork import QHttp
 from urlparse import urlparse
 import os
+import zipfile
 from zipfile import ZipFile
 #from minecraftQuery import MinecraftQuery
 import psutil
@@ -151,14 +152,21 @@ class pluginSetupGui(QtGui.QDialog):
         self.dialog.exec_()
         if self.downloadInformation['download'].lower().endswith('.zip'):
             zipFileName = targetDirectory + "/plugins/" + self.downloadInformation['download'].split("/")[-1] # this will break if there are parameters on the URL but normally there aren't so it is safe
-            zipExtraction = ZipFile(zipFileName)
-            print zipFileName
-            ZipFile.extractall(zipExtraction, targetDirectory + '/plugins/')
-            ZipFile.close(zipExtraction)
-            os.remove(zipFileName)
-        self.completedSetupLabel = QLabel("Plugin setup complete.")
-        self.completedSetupLabel.setStyleSheet('QLabel {color: green}')
-        self.grid.addWidget(self.completedSetupLabel,7,1)
+            try:
+                zipExtraction = ZipFile(zipFileName)
+                print zipFileName
+                ZipFile.extractall(zipExtraction, targetDirectory + '/plugins/')
+                ZipFile.close(zipExtraction)
+                os.remove(zipFileName)
+                self.completedSetupLabel = QLabel("Plugin setup complete.")
+                self.completedSetupLabel.setStyleSheet('QLabel {color: green}')
+                self.grid.addWidget(self.completedSetupLabel,7,1)
+            except zipfile.BadZipFile, e:
+                QtGui.QErrorMessage.showMessage(QtGui.QErrorMessage.qtHandler(), 'ZIP file is corrupt.\r\nZipFile said: ' + e.message)
+                self.completedSetupLabel = QLabel("Plugin setup failed.")
+                self.completedSetupLabel.setStyleSheet('QLabel {color: red}')
+                self.grid.addWidget(self.completedSetupLabel,7,1)
+
     def essentialsSetup(self):
         self.essentialsInformation = Essentials().getInfo('Release')
         print self.essentialsInformation
@@ -199,13 +207,19 @@ class pluginSetupGui(QtGui.QDialog):
         self.dialog.exec_()
         zipFileName = targetDirectory + '/plugins/' + essentialsDownloadUrl[1]
         print zipFileName
-        zipExtraction = ZipFile(zipFileName)
-        ZipFile.extractall(zipExtraction, targetDirectory + '/plugins')
-        ZipFile.close(zipExtraction)
-        os.remove(zipFileName)
-        self.essentialsCompletedSetupLabel = QtGui.QLabel('Essentials plugin installation complete.')
-        self.essentialsCompletedSetupLabel.setStyleSheet('QLabel {color: green}')
-        self.essGrid.addWidget(self.essentialsCompletedSetupLabel,5,1)
+        try:
+            zipExtraction = ZipFile(zipFileName)
+            ZipFile.extractall(zipExtraction, targetDirectory + '/plugins')
+            ZipFile.close(zipExtraction)
+            os.remove(zipFileName)
+            self.essentialsCompletedSetupLabel = QtGui.QLabel('Essentials plugin installation complete.')
+            self.essentialsCompletedSetupLabel.setStyleSheet('QLabel {color: green}')
+            self.essGrid.addWidget(self.essentialsCompletedSetupLabel,5,1)
+        except zipfile.BadZipfile, e:
+            QtGui.QErrorMessage.showMessage(QtGui.QErrorMessage.qtHandler(), 'ZIP file is corrupted.\r\nZipFile said: ' + e.message)
+            self.essentialsCompletedSetupLabel = QtGui.QLabel('Essentials failed to install.')
+            self.essentialsCompletedSetupLabel.setStyleSheet('QLabel {color: red}')
+            self.essGrid.addWidget(self.essentialsCompletedSetupLabel,5,1)
 
     def essentialsEditionIndexChange(self):
         self.essentialsInformation = Essentials().getInfo(str(self.pickEssentialsEditionComboBox.currentText()))
@@ -248,10 +262,24 @@ class startupScriptSetup(QtGui.QDialog):
         self.chosenMemoryIndicator.setText('Memory (MB): ' + str(value))
     def createScriptButtonClicked(self):
         global targetDirectory
-        if self.enableJavaGarbageCollection.isChecked():
-            scriptContents = "java -Xincgc -Xmx" + str(self.memorySlider.value()) + "M -jar craftbukkit.jar"
+        # Get Java Path from environment variable, otherwise just use java as the command line and hope it is in the classpath
+        if os.name == "nt":
+            slash = '\\'
         else:
-            scriptContents = "java -Xmx" + str(self.memorySlider.value()) + "M -jar craftbukkit.jar"
+            slash = '/'
+        if not os.getenv('java_home') is None:
+            print "Java Home is defined: " + os.getenv('java_home')
+            javaPath = '"' + os.getenv('java_home') + 'bin' + slash + 'java.exe' + '"'
+            print javaPath
+            if not os.path.exists(javaPath.replace('"', '')):
+                print "JAVA_HOME is invalid, probably old. Going back to classpath"
+                javaPath = 'java'
+        else:
+            javaPath = 'java' # Hope it is in classpath, can try and test with exit code by using os.system() but cbf
+        if self.enableJavaGarbageCollection.isChecked():
+            scriptContents = javaPath + " -Xincgc -Xmx" + str(self.memorySlider.value()) + "M -jar craftbukkit.jar"
+        else:
+            scriptContents = javaPath + " -Xmx" + str(self.memorySlider.value()) + "M -jar craftbukkit.jar"
         print scriptContents
         if os.name == "nt":
             extension = 'bat'
@@ -443,8 +471,15 @@ class managerGui(QtGui.QDialog):
     def browseInstallDirectoryButtonClick(self):
         global targetDirectory
         targetDirectory = str(QFileDialog.getExistingDirectory(self, "Select Target Directory"))
-        if not os.path.exists(targetDirectory + "/plugins/"):
-            os.makedirs(targetDirectory + "/plugins/")
+        if os.path.exists(targetDirectory):
+            if not os.path.exists(targetDirectory + "/plugins/"):
+                os.makedirs(targetDirectory + "/plugins/")
+            self.browseInstallDirectoryButtonLabel.setText('Directory is valid!')
+            self.browseInstallDirectoryButtonLabel.setStyleSheet('QLabel {color: green}')
+        else: # This really should not happen unless they press cancel
+            self.browseInstallDirectoryButtonLabel.setStyleSheet('QLabel {color: red}')
+            self.browseInstallDirectoryButtonLabel.setText('Selected directory does not exist.')
+
     def refreshStatus(self):
         self.minecraftQuery = MinecraftQuery(self.statusIpAddress.text(), self.statusPortNumber.text())
         self.minecraftQueryInformation = self.minecraftQuery.get_rules()
