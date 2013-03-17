@@ -434,6 +434,9 @@ class managerGui(QtGui.QDialog):
                     self.dialog = Downloader(realUrl.url, targetDirectory)
                 self.dialog.exec_()
                 fileName = realUrl.url.split("/")[-1]
+                print fileName
+                if os.path.isfile(targetDirectory + '/craftbukkit.jar'):
+                    os.remove(targetDirectory + '/craftbukkit.jar')
                 os.rename(targetDirectory + '/' + fileName, targetDirectory + '/craftbukkit.jar')
         else:
             QtGui.QErrorMessage.showMessage(QtGui.QErrorMessage.qtHandler(), 'Please select a directory first.')
@@ -528,7 +531,6 @@ class Downloader(QDialog):
         fileInfo = QFileInfo(url.path())
         #fileName = fileInfo.fileName()
         fileName = self.targetDirectory + fileInfo.fileName()
-
         if QFile.exists(fileName):
             QFile.remove(fileName)
 
