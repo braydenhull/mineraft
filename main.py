@@ -285,10 +285,14 @@ class startupScriptSetup(QtGui.QDialog):
             extension = 'bat'
         else: # In most circumstances this should not be a problem.
             extension = 'sh'
-        with open(targetDirectory + "/startserver." + extension, 'w') as script:
-            script.write(scriptContents)
+        try:
+            with open(targetDirectory + "/startserver." + extension, 'w') as script:
+                script.write(scriptContents)
+        except IOError, e:
+            QtGui.QErrorMessage.showMessage(QtGui.QErrorMessage.qtHandler(), "There was an IOError of some sort.\r\n " + e.message)
         if not os.name == "nt": # On Linux and a lot of other Unix-Likes you have to mark the file executable
             os.system('chmod +x ' + targetDirectory + "/startserver.sh")
+        self.close()
 
 class managerGui(QtGui.QDialog):
     def __init__(self):
@@ -306,6 +310,7 @@ class managerGui(QtGui.QDialog):
         for result in self.cacheBukkitRecommendedResultInfo['results']:
             self.bukkitVersions.addItem(result['version'])
         self.setupStartupScriptButton = QtGui.QPushButton('Create Startup Script')
+        self.startServer = QtGui.QPushButton('Start Server')
 
 
         self.pluginOfficialSupportComboBox = QtGui.QComboBox(self)
@@ -334,13 +339,14 @@ class managerGui(QtGui.QDialog):
         self.statusMaxPlayers = QtGui.QLabel('Max Players: ')
 
         bukkitGrid = QtGui.QGroupBox("Bukkit")
-        bukkitGridLayout = QtGui.QVBoxLayout()
-        bukkitGridLayout.setSpacing(10)
-        bukkitGridLayout.addWidget(self.getBukkit,1)
-        bukkitGridLayout.addWidget(self.bukkitEditions,2)
-        bukkitGridLayout.addWidget(self.bukkitVersions,3)
-        bukkitGridLayout.addWidget(self.bukkitVersionsLabel,4)
-        bukkitGridLayout.addWidget(self.setupStartupScriptButton,5)
+        self.bukkitGridLayout = QtGui.QVBoxLayout()
+        self.bukkitGridLayout.setSpacing(10)
+        self.bukkitGridLayout.addWidget(self.getBukkit,1)
+        self.bukkitGridLayout.addWidget(self.bukkitEditions,2)
+        self.bukkitGridLayout.addWidget(self.bukkitVersions,3)
+        self.bukkitGridLayout.addWidget(self.bukkitVersionsLabel,4)
+        self.bukkitGridLayout.addWidget(self.setupStartupScriptButton,5)
+        self.bukkitGridLayout.addWidget(self.startServer,6)
 
         pluginGrid = QtGui.QGroupBox("Plugin")
         pluginGridLayout = QtGui.QVBoxLayout()
@@ -352,7 +358,7 @@ class managerGui(QtGui.QDialog):
         pluginGridLayout.addWidget(self.pluginCustomPluginUrl,5)
         pluginGridLayout.addWidget(self.installPluginButton,6)
 
-        bukkitGrid.setLayout(bukkitGridLayout)
+        bukkitGrid.setLayout(self.bukkitGridLayout)
         pluginGrid.setLayout(pluginGridLayout)
 
         self.grid = QtGui.QGridLayout()
@@ -390,14 +396,45 @@ class managerGui(QtGui.QDialog):
         self.browseInstallDirectoryButton.clicked.connect(self.browseInstallDirectoryButtonClick)
         self.statusRefreshButton.clicked.connect(self.refreshStatus)
         self.setupStartupScriptButton.clicked.connect(self.setupStartupScriptButtonClick)
+        self.startServer.clicked.connect(self.startServerButtonClick)
+
+    def startServerButtonClick(self):
+        global targetDirectory
+        if not targetDirectory == "":
+            if os.name == "nt":
+                extension = '.bat'
+            else:
+                extension = '.sh'
+            os.chdir(targetDirectory)
+            if os.name == 'nt':
+                os.system('start ' + targetDirectory + '/startserver' + extension)
+            else:
+                os.system('xterm ' + targetDirectory + '/startserver' + extension)
+        else:
+            QtGui.QErrorMessage.showMessage(QtGui.QErrorMessage.qtHandler(), 'Please select a directory first.')
 
     def setupStartupScriptButtonClick(self):
         global targetDirectory
         if not targetDirectory == "":
             self.dialog = startupScriptSetup()
             self.dialog.exec_()
+            if os.name == 'nt':
+                extension = '.bat'
+            else:
+                extension = '.sh'
+            if os.path.isfile(targetDirectory + '/startserver' + extension):
+                try:
+                    if self.startupFileInfo is None:
+                        self.startupFileInfo = QtGui.QLabel('startserver' + extension + ' is present.')
+                        self.startupFileInfo.setStyleSheet('QLabel {color: green}')
+                        self.bukkitGridLayout.addWidget(self.startupFileInfo,7)
+                except AttributeError:
+                    self.startupFileInfo = QtGui.QLabel('startserver' + extension + ' is present.')
+                    self.startupFileInfo.setStyleSheet('QLabel {color: green}')
+                    self.bukkitGridLayout.addWidget(self.startupFileInfo,7)
         else:
             QtGui.QErrorMessage.showMessage(QtGui.QErrorMessage.qtHandler(), 'Please select a directory first.')
+
     def installSupportedPluginButtonPress(self):
         global targetDirectory
         if not targetDirectory == '':
@@ -479,6 +516,14 @@ class managerGui(QtGui.QDialog):
                 os.makedirs(targetDirectory + "/plugins/")
             self.browseInstallDirectoryButtonLabel.setText('Directory is valid!')
             self.browseInstallDirectoryButtonLabel.setStyleSheet('QLabel {color: green}')
+            if os.name == 'nt':
+                extension = '.bat'
+            else:
+                extension = '.sh'
+            if os.path.isfile(targetDirectory + '/startserver' + extension):
+                self.startupFileInfo = QtGui.QLabel('startserver' + extension + ' is present.')
+                self.startupFileInfo.setStyleSheet('QLabel {color: green}')
+                self.bukkitGridLayout.addWidget(self.startupFileInfo,7)
         else: # This really should not happen unless they press cancel
             self.browseInstallDirectoryButtonLabel.setStyleSheet('QLabel {color: red}')
             self.browseInstallDirectoryButtonLabel.setText('Selected directory does not exist.')
