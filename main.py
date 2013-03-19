@@ -256,7 +256,7 @@ class startupScriptSetup(QtGui.QDialog):
         self.memorySlider.connect(self.memorySlider, QtCore.SIGNAL('valueChanged(int)'), self.memorySliderValueChange)
         self.createScript.clicked.connect(self.createScriptButtonClicked)
         self.setLayout(grid)
-        self.setWindowTitle('Qt Frame')
+        self.setWindowTitle('Generate Script')
         self.show()
     def memorySliderValueChange(self, value):
         self.chosenMemoryIndicator.setText('Memory (MB): ' + str(value))
@@ -283,6 +283,8 @@ class startupScriptSetup(QtGui.QDialog):
         print scriptContents
         if os.name == "nt":
             extension = 'bat'
+        elif sys.platform == 'darwin':
+            extension = 'command'
         else: # In most circumstances this should not be a problem.
             extension = 'sh'
         try:
@@ -291,7 +293,7 @@ class startupScriptSetup(QtGui.QDialog):
         except IOError, e:
             QtGui.QErrorMessage.showMessage(QtGui.QErrorMessage.qtHandler(), "There was an IOError of some sort.\r\n " + e.message)
         if not os.name == "nt": # On Linux and a lot of other Unix-Likes you have to mark the file executable
-            os.system('chmod +x ' + targetDirectory + "/startserver.sh")
+            os.system('chmod +x ' + targetDirectory + "/startserver." + extension)
         self.close()
 
 class managerGui(QtGui.QDialog):
@@ -403,11 +405,15 @@ class managerGui(QtGui.QDialog):
         if not targetDirectory == "":
             if os.name == "nt":
                 extension = '.bat'
+            elif sys.platform == 'darwin':
+                extension = '.command'
             else:
                 extension = '.sh'
             os.chdir(targetDirectory)
             if os.name == 'nt':
                 os.system('start ' + targetDirectory + '/startserver' + extension)
+            elif sys.platform == 'darwin':
+                os.system('open ' + targetDirectory + '/startserver' + extension)
             else:
                 os.system('xterm ' + targetDirectory + '/startserver' + extension)
         else:
@@ -518,6 +524,8 @@ class managerGui(QtGui.QDialog):
             self.browseInstallDirectoryButtonLabel.setStyleSheet('QLabel {color: green}')
             if os.name == 'nt':
                 extension = '.bat'
+            elif sys.platform == 'darwin':
+                extension = '.command'
             else:
                 extension = '.sh'
             if os.path.isfile(targetDirectory + '/startserver' + extension):
