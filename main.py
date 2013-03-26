@@ -109,13 +109,16 @@ class pluginSetupGui(QtGui.QDialog):
         elif supported and pluginUrl == 'Essentials':
             self.essentialsSetup()
     def initUI(self, pluginUrl):
-        print pluginUrl
+        msg = QMessageBox(self)
+        msg.setWindowTitle('Please wait...')
+        msg.setIcon(QMessageBox.Information)
+        msg.setText('Please wait whilst information is requested.')
+        msg.show()
         self.pluginInformation = getPlugin().getGenericBukkitDevPluginInfo(str(pluginUrl))
-        print self.pluginInformation
+        msg.close()
         self.pickVersionComboBox = QtGui.QComboBox()
         for version in self.pluginInformation['versions']['title']:
             self.pickVersionComboBox.addItem(version)
-            print version
 
         self.versionDescription = QtGui.QTextEdit()
         self.versionDescription.setText(self.pluginInformation['versions']['description'][0])
@@ -161,14 +164,22 @@ class pluginSetupGui(QtGui.QDialog):
                 self.completedSetupLabel = QLabel("Plugin setup complete.")
                 self.completedSetupLabel.setStyleSheet('QLabel {color: green}')
                 self.grid.addWidget(self.completedSetupLabel,7,1)
-            except zipfile.BadZipFile, e:
-                QtGui.QErrorMessage.showMessage(QtGui.QErrorMessage.qtHandler(), 'ZIP file is corrupt.\r\nZipFile said: ' + e.message)
+            except zipfile.BadZipfile:
+                QtGui.QMessageBox.critical(self, 'Error', 'ZIP file was corrupt.')
                 self.completedSetupLabel = QLabel("Plugin setup failed.")
                 self.completedSetupLabel.setStyleSheet('QLabel {color: red}')
                 self.grid.addWidget(self.completedSetupLabel,7,1)
+        QtGui.QMessageBox.information(self, 'Success', 'Plugin installed successfully.')
+        self.close()
 
     def essentialsSetup(self):
+        msg = QMessageBox(self)
+        msg.setWindowTitle('Please wait...')
+        msg.setIcon(QMessageBox.Information)
+        msg.setText('Please wait whilst information is requested.')
+        msg.show()
         self.essentialsInformation = Essentials().getInfo('Release')
+        msg.close()
         print self.essentialsInformation
         self.pickEssentialsEditionComboBox = QtGui.QComboBox()
         self.pickEssentialsEditionComboBoxLabel = QtGui.QLabel('Select Release: ')
@@ -206,6 +217,7 @@ class pluginSetupGui(QtGui.QDialog):
         self.dialog = Downloader(essentialsDownloadUrl[0], targetDirectory + "/plugins/")
         self.dialog.exec_()
         zipFileName = targetDirectory + '/plugins/' + essentialsDownloadUrl[1]
+        zipFileName = targetDirectory + '/plugins/essentials-broken.zip'
         print zipFileName
         try:
             zipExtraction = ZipFile(zipFileName)
@@ -216,7 +228,8 @@ class pluginSetupGui(QtGui.QDialog):
             self.essentialsCompletedSetupLabel.setStyleSheet('QLabel {color: green}')
             self.essGrid.addWidget(self.essentialsCompletedSetupLabel,5,1)
         except zipfile.BadZipfile, e:
-            QtGui.QErrorMessage.showMessage(QtGui.QErrorMessage.qtHandler(), 'ZIP file is corrupted.\r\nZipFile said: ' + e.message)
+            QtGui.QMessageBox.critical(self, 'Error', 'ZIP file was corrupt.\r\nZipFile said: ' + e.message)
+            #QtGui.QErrorMessage.showMessage(QtGui.QErrorMessage.qtHandler(), 'ZIP file is corrupted.\r\nZipFile said: ' + e.message)
             self.essentialsCompletedSetupLabel = QtGui.QLabel('Essentials failed to install.')
             self.essentialsCompletedSetupLabel.setStyleSheet('QLabel {color: red}')
             self.essGrid.addWidget(self.essentialsCompletedSetupLabel,5,1)
@@ -294,6 +307,7 @@ class startupScriptSetup(QtGui.QDialog):
             QtGui.QErrorMessage.showMessage(QtGui.QErrorMessage.qtHandler(), "There was an IOError of some sort.\r\n " + e.message)
         if not os.name == "nt": # On Linux and a lot of other Unix-Likes you have to mark the file executable
             os.system('chmod +x ' + targetDirectory + "/startserver." + extension)
+        QtGui.QMessageBox.information(self, 'Generate Script Result', 'Script generated successfully.', QtGui.QMessageBox.Ok)
         self.close()
 
 class managerGui(QtGui.QDialog):
@@ -303,7 +317,13 @@ class managerGui(QtGui.QDialog):
     def initUI(self):
         global targetDirectory
         targetDirectory = ''
+        msg = QMessageBox(self)
+        msg.setWindowTitle('Please wait...')
+        msg.setIcon(QMessageBox.Information)
+        msg.setText('Please wait whilst information is requested.')
+        msg.show()
         self.cacheBukkitRecommendedResultInfo = getServer().getRecommendedBukkitInfo()
+        msg.close()
         self.getBukkit = QtGui.QPushButton('Get Craftbukkit')
         self.bukkitEditions = QtGui.QComboBox(self)
         self.bukkitEditions.addItems(['Recommended', 'Beta', 'Development'])
@@ -417,7 +437,8 @@ class managerGui(QtGui.QDialog):
             else:
                 os.system('xterm ' + targetDirectory + '/startserver' + extension)
         else:
-            QtGui.QErrorMessage.showMessage(QtGui.QErrorMessage.qtHandler(), 'Please select a directory first.')
+            #QtGui.QErrorMessage.showMessage(QtGui.QErrorMessage.qtHandler(), 'Please select a directory first.')
+            QtGui.QMessageBox.critical(self, 'Error', 'Please select a directory first.')
 
     def setupStartupScriptButtonClick(self):
         global targetDirectory
@@ -439,7 +460,7 @@ class managerGui(QtGui.QDialog):
                     self.startupFileInfo.setStyleSheet('QLabel {color: green}')
                     self.bukkitGridLayout.addWidget(self.startupFileInfo,7)
         else:
-            QtGui.QErrorMessage.showMessage(QtGui.QErrorMessage.qtHandler(), 'Please select a directory first.')
+            QtGui.QMessageBox.critical(self, 'Error', 'Please select a directory first.')
 
     def installSupportedPluginButtonPress(self):
         global targetDirectory
@@ -447,14 +468,14 @@ class managerGui(QtGui.QDialog):
             self.dialog = pluginSetupGui(True, self.pluginOfficialSupportComboBox.currentText())
             self.dialog.exec_()
         else:
-            QtGui.QErrorMessage.showMessage(QtGui.QErrorMessage.qtHandler(), 'Please select a directory first.')
+            QtGui.QMessageBox.critical(self, 'Error', 'Please select a directory first.')
     def installPluginButtonPress(self):
         global targetDirectory
         if not targetDirectory == '':
             self.dialog = pluginSetupGui(False, self.pluginCustomPluginUrl.text())
             self.dialog.exec_()
         else:
-            QtGui.QErrorMessage.showMessage(QtGui.QErrorMessage.qtHandler(), 'Please select a directory first.')
+            QtGui.QMessageBox.critical(self, 'Error', 'Please select a directory first.')
     def getBukkitButtonPress(self):
         global targetDirectory
         print targetDirectory
@@ -482,7 +503,7 @@ class managerGui(QtGui.QDialog):
                     os.remove(targetDirectory + '/craftbukkit.jar')
                 os.rename(targetDirectory + '/' + fileName, targetDirectory + '/craftbukkit.jar')
         else:
-            QtGui.QErrorMessage.showMessage(QtGui.QErrorMessage.qtHandler(), 'Please select a directory first.')
+            QtGui.QMessageBox.critical(self, 'Error', 'Please select a directory first.')
     def bukkitEditionIndexChange(self):
         self.bukkitVersions.clear()
         if self.bukkitEditions.currentText() == 'Recommended':
@@ -680,7 +701,6 @@ class MinecraftQuery:
         software    = "Server Software",
         version     = "Game Version",
         )
-
     def __init__(self, host, port, timeout=10, id=0, retries=2):
         # Fixing port before it gets this far as will crash due to QString
         port = int(port)
@@ -690,16 +710,12 @@ class MinecraftQuery:
         self.challenge_packed = struct.pack('>l', 0)
         self.retries = 0
         self.max_retries = retries
-
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.socket.settimeout(timeout)
-
     def send_raw(self, data):
         self.socket.sendto(self.MAGIC_PREFIX + data, self.addr)
-
     def send_packet(self, type, data=''):
         self.send_raw(struct.pack('>B', type) + self.id_packed + self.challenge_packed + data)
-
     def read_packet(self):
         # This buffer is normally enough but I've encountered some huge servers which exceed this limit so I'll raise it
         # original is 1460
@@ -710,55 +726,42 @@ class MinecraftQuery:
 
     def handshake(self, bypass_retries=False):
         self.send_packet(self.PACKET_TYPE_CHALLENGE)
-
         try:
             type, id, buff = self.read_packet()
         except:
             if not bypass_retries:
                 self.retries += 1
-
             if self.retries < self.max_retries:
                 self.handshake(bypass_retries=bypass_retries)
                 return
             else:
                 raise
-
         self.challenge = int(buff[:-1])
         self.challenge_packed = struct.pack('>l', self.challenge)
-
     def get_status(self):
         if not hasattr(self, 'challenge'):
             self.handshake()
-
         self.send_packet(self.PACKET_TYPE_QUERY)
-
         try:
             type, id, buff = self.read_packet()
         except:
             self.handshake()
             return self.get_status()
-
         data = {}
-
         data['motd'], data['gametype'], data['map'], data['numplayers'], data['maxplayers'], buff = buff.split('\x00', 5)
         data['hostport'] = struct.unpack('<h', buff[:2])[0]
         buff = buff[2:]
         data['hostname'] = buff[:-1]
-
         for key in ('numplayers', 'maxplayers'):
             try:
                 data[key] = int(data[key])
             except:
                 pass
-
         return data
-
     def get_rules(self):
         if not hasattr(self, 'challenge'):
             self.handshake()
-
         self.send_packet(self.PACKET_TYPE_QUERY, self.id_packed)
-
         try:
             type, id, buff = self.read_packet()
         except:
@@ -768,47 +771,34 @@ class MinecraftQuery:
                 return self.get_rules()
             else:
                 raise
-
         data = {}
-
         buff = buff[11:] # splitnum + 2 ints
         items, players = buff.split('\x00\x00\x01player_\x00\x00') # Shamefully stole from https://github.com/barneygale/MCQuery
-
         if items[:8] == 'hostname':
             items = 'motd' + items[8:]
-
         items = items.split('\x00')
         data = dict(zip(items[::2], items[1::2]))
-
         players = players[:-2]
-
         if players:
             data['players'] = players.split('\x00')
         else:
             data['players'] = []
-
         for key in ('numplayers', 'maxplayers', 'hostport'):
             try:
                 data[key] = int(data[key])
             except:
                 pass
-
         data['raw_plugins'] = data['plugins']
         data['software'], data['plugins'] = self.parse_plugins(data['raw_plugins'])
-
         return data
-
     def parse_plugins(self, raw):
         parts = raw.split(':', 1)
         server = parts[0].strip()
         plugins = []
-
         if len(parts) == 2:
             plugins = parts[1].split(';')
             plugins = map(lambda s: s.strip(), plugins)
-
         return server, plugins
-
 
 main()
 
