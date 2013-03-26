@@ -19,6 +19,7 @@ from zipfile import ZipFile
 import psutil
 import socket
 import struct
+import hashlib
 
 # This guy is pro http://stackoverflow.com/a/9662362/2077881
 TAG_RE = re.compile(r'<[^>]+>')
@@ -146,15 +147,25 @@ class pluginSetupGui(QtGui.QDialog):
         self.versionDescription.setText(self.pluginInformation['versions']['description'][self.pickVersionComboBox.currentIndex()])
     def downloadPluginButtonPress(self):
         global targetDirectory
+        msg = QMessageBox(self)
+        msg.setWindowTitle('Please wait...')
+        msg.setIcon(QMessageBox.Information)
+        msg.setText('Please wait whilst information is requested.')
+        msg.show()
         self.downloadInformation = getPlugin().getGenericBukkitDevPluginDownloadInformation(self.pluginInformation['versions']['link'][self.pickVersionComboBox.currentIndex()])
+        msg.close()
         self.downloadUrlLabel.setText('URL: ' + self.downloadInformation['download'])
         self.md5HashLabel.setText('MD5: ' + self.downloadInformation['MD5'])
         self.supportedCB.setText('CB: ' + ", ".join(self.downloadInformation['supportedCraftBukkit']))
         #self.supportedCB.setText('CB: '+ str(self.downloadInformation['supportedCraftBukkit']))
         self.dialog = Downloader(self.downloadInformation['download'], targetDirectory + '/plugins/')
         self.dialog.exec_()
+        # this will break if there are parameters on the URL but normally there aren't so it is safe
+        zipFileName = targetDirectory + "/plugins/" + self.downloadInformation['download'].split("/")[-1]
+        if not md5sum(zipFileName) == self.downloadInformation['MD5']:
+            QtGui.QMessageBox.critical(self, 'Error', zipFileName + ' failed MD5 hash check.\r\nDevBukkit: ' + self.downloadInformation['MD5'] + '\r\nFile: ' + md5sum(zipFileName))
+            self.close()
         if self.downloadInformation['download'].lower().endswith('.zip'):
-            zipFileName = targetDirectory + "/plugins/" + self.downloadInformation['download'].split("/")[-1] # this will break if there are parameters on the URL but normally there aren't so it is safe
             try:
                 zipExtraction = ZipFile(zipFileName)
                 print zipFileName
@@ -217,7 +228,6 @@ class pluginSetupGui(QtGui.QDialog):
         self.dialog = Downloader(essentialsDownloadUrl[0], targetDirectory + "/plugins/")
         self.dialog.exec_()
         zipFileName = targetDirectory + '/plugins/' + essentialsDownloadUrl[1]
-        zipFileName = targetDirectory + '/plugins/essentials-broken.zip'
         print zipFileName
         try:
             zipExtraction = ZipFile(zipFileName)
@@ -800,5 +810,18 @@ class MinecraftQuery:
             plugins = map(lambda s: s.strip(), plugins)
         return server, plugins
 
-main()
+# Thank you to http://thejaswihr.blogspot.com.au/2008/06/python-md5-checksum-of-file.html for this.
+def md5sum(fileName, excludeLine="", includeLine=""):
+    """Compute md5 hash of the specified file"""
+    m = hashlib.md5()
+    fd = open(fileName,"rb")
+    content = fd.readlines()
+    fd.close()
+    for eachLine in content:
+        if excludeLine and eachLine.startswith(excludeLine):
+            continue
+        m.update(eachLine)
+    m.update(includeLine)
+    return m.hexdigest()
 
+main()
