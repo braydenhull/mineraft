@@ -1,12 +1,8 @@
 __author__ = 'brayden'
-import json
 import urllib2
 import sys
-from bs4 import BeautifulSoup
 import re
-import feedparser
 from PyQt4 import QtGui, QtCore
-#from PyQt4.QtCore import *
 from PyQt4.QtCore import QUrl, QFileInfo, QFile, QIODevice
 from PyQt4.QtGui import QApplication, QDialog, QProgressBar, QLabel, QPushButton, QDialogButtonBox, \
     QVBoxLayout, QMessageBox, QFileDialog
@@ -15,93 +11,19 @@ from urlparse import urlparse
 import os
 import zipfile
 from zipfile import ZipFile
-#from minecraftQuery import MinecraftQuery
 import psutil
-import socket
-import struct
-import hashlib
+from minecraftQuery import MinecraftQuery
+import md5sum
+from essentials import Essentials
+from plugin import getPlugin
+from server import getServer
 
 # This guy is pro http://stackoverflow.com/a/9662362/2077881
-TAG_RE = re.compile(r'<[^>]+>')
-def remove_tags(text):
-    return TAG_RE.sub('', text)
+
+
 
 nativePluginSupport = ['Essentials']
 
-class Essentials():
-    def getInfo(self, version):
-        teamCityBuildIds = {'Release': 'bt3', 'Pre-Release': 'bt9', 'Development': 'bt2', 'GroupManager': 'bt10'} # I can get this sort of info manually but it'd take some hacky URL parsing and is liable to break so I feel this is better
-        # The compiled list of everything that should be needed for Essentials. this is quite a lot of info though but I don't want to have to call this function more than once
-        # Build artifacts is unfilled as I don't know why I put it there
-        essInfo = {'buildVersions': {'id': [],'version': []}, 'buildArtifacts': [], 'buildType': teamCityBuildIds[version]}
-        try:
-            buildTypeId = teamCityBuildIds[version]
-            print buildTypeId
-        except IndexError:
-            print("Version string given is not known.")
-            sys.exit(1)
-        request = urllib2.Request('http://ess.ementalo.com/guestAuth/app/rest/buildTypes/id:' + buildTypeId + '/builds', headers={"Accept": "application/json"})
-        buildList = json.loads(urllib2.urlopen(request).read())
-        print buildList
-        print "Versions available: "
-        for build in buildList['build']:
-            print(build)
-            print("Essentials stable " + build['number'] + " is available.")
-            essInfo['buildVersions']['version'].append(build['number'])
-            essInfo['buildVersions']['id'].append(build['id'])
-        return essInfo
-
-    def getDownload(self, buildTypeId, buildId, edition):
-        if edition ==  'Extra':
-            fileName = 'Essentials-extra.zip'
-        elif edition == 'Full':
-            fileName = 'Essentials-full.zip'
-        elif edition == 'Core':
-            fileName = 'Essentials.zip'
-        elif edition == 'GroupManager':
-            fileName = 'Essentials-gm.zip'
-        else:
-            print "Edition was not valid, options are: Extra, Full, Core or GroupManager."
-            print "Setting Edition to Core as a contingency"
-            fileName = 'Essentials.zip'
-        url = 'http://ess.ementalo.com/repository/download/' + buildTypeId + '/' + str(buildId) + ':id/' + fileName + '?guest=1' # If you don't do ?guest=1 it'll not work properly!
-        return url, fileName
-class getPlugin():
-    def getGenericBukkitDevPluginInfo(self, pluginUrl):
-        print "got this far!"
-        returnInfoDict = {'versions': {'title': [], 'description': [], 'link': []}}
-        feed = feedparser.parse(pluginUrl + 'files.rss')
-        for entry in feed['entries']:
-            returnInfoDict['versions']['title'].append(entry['title'])
-            returnInfoDict['versions']['description'].append(remove_tags(entry['summary_detail']['value']))
-            returnInfoDict['versions']['link'].append(entry['links'][0]['href'])
-        # generate exception so I get memory footprint
-        #doesnotexist[1]
-        return returnInfoDict
-    def getGenericBukkitDevPluginDownloadInformation(self, url):
-        returnInfoDict = {'download': '', 'MD5': '', 'supportedCraftBukkit': []}
-        request = urllib2.Request(url)
-        webpage = BeautifulSoup(urllib2.urlopen(request).read())
-        for link in webpage.find_all('a', href=re.compile('^http://dev.bukkit.org/media/files/')):
-            returnInfoDict['download'] = link.get('href')
-            break
-        returnInfoDict['MD5'] = webpage.find("dt",text="MD5").findNextSiblings("dd")[0].string
-        for tagContent in webpage.find('ul',{"class": "comma-separated-list"}).find_all('li'):
-            returnInfoDict['supportedCraftBukkit'].append(tagContent.string)
-        return returnInfoDict
-class getServer():
-    def getRecommendedBukkitInfo(self):
-        request = urllib2.Request('http://dl.bukkit.org/api/1.0/downloads/projects/craftbukkit/artifacts/rb/?_accept=application%2Fjson')
-        buildList = json.loads(urllib2.urlopen(request).read())
-        return buildList
-    def getBetaBukkitInfo(self):
-        request = urllib2.Request('http://dl.bukkit.org/api/1.0/downloads/projects/craftbukkit/artifacts/beta/?_accept=application%2Fjson')
-        buildList = json.loads(urllib2.urlopen(request).read())
-        return buildList
-    def getDevBukkitInfo(self):
-        request = urllib2.Request('http://dl.bukkit.org/api/1.0/downloads/projects/craftbukkit/artifacts/dev/?_accept=application%2Fjson')
-        buildList = json.loads(urllib2.urlopen(request).read())
-        return buildList
 class pluginSetupGui(QtGui.QDialog):
     def __init__(self, supported, pluginUrl):
         super(pluginSetupGui, self).__init__()
@@ -162,8 +84,8 @@ class pluginSetupGui(QtGui.QDialog):
         self.dialog.exec_()
         # this will break if there are parameters on the URL but normally there aren't so it is safe
         zipFileName = targetDirectory + "/plugins/" + self.downloadInformation['download'].split("/")[-1]
-        if not md5sum(zipFileName) == self.downloadInformation['MD5']:
-            QtGui.QMessageBox.critical(self, 'Error', zipFileName + ' failed MD5 hash check.\r\nDevBukkit: ' + self.downloadInformation['MD5'] + '\r\nFile: ' + md5sum(zipFileName))
+        if not md5sum.compute(zipFileName) == self.downloadInformation['MD5']:
+            QtGui.QMessageBox.critical(self, 'Error', zipFileName + ' failed MD5 hash check.\r\nDevBukkit: ' + self.downloadInformation['MD5'] + '\r\nFile: ' + md5sum.compute(zipFileName))
             self.close()
         if self.downloadInformation['download'].lower().endswith('.zip'):
             try:
@@ -190,6 +112,7 @@ class pluginSetupGui(QtGui.QDialog):
         msg.setText('Please wait whilst information is requested.')
         msg.show()
         self.essentialsInformation = Essentials().getInfo('Release')
+        #self.essentialsInformation = essentials.Essentials().getInfo('Release')
         msg.close()
         print self.essentialsInformation
         self.pickEssentialsEditionComboBox = QtGui.QComboBox()
@@ -490,7 +413,7 @@ class managerGui(QtGui.QDialog):
         global targetDirectory
         print targetDirectory
         if not targetDirectory == '':
-            targetDirectory = targetDirectory + '/'
+            targetDirectory += '/'
             if not self.bukkitVersions.currentText() == '':
                 realUrl = ''
                 if self.bukkitEditions.currentText() == 'Recommended':
@@ -566,7 +489,6 @@ class managerGui(QtGui.QDialog):
         else: # This really should not happen unless they press cancel
             self.browseInstallDirectoryButtonLabel.setStyleSheet('QLabel {color: red}')
             self.browseInstallDirectoryButtonLabel.setText('Selected directory does not exist.')
-
     def refreshStatus(self):
         self.minecraftQuery = MinecraftQuery(self.statusIpAddress.text(), self.statusPortNumber.text())
         self.minecraftQueryInformation = self.minecraftQuery.get_rules()
@@ -617,14 +539,11 @@ class Downloader(QDialog):
         fileName = self.targetDirectory + fileInfo.fileName()
         if QFile.exists(fileName):
             QFile.remove(fileName)
-
         self.outFile = QFile(fileName)
         if not self.outFile.open(QIODevice.WriteOnly):
-            QMessageBox.information(self, 'Error',
-                                    'Unable to save the file %s: %s.' % (fileName, self.outFile.errorString()))
+            QMessageBox.information(self, 'Error', 'Unable to save the file %s: %s.' % (fileName, self.outFile.errorString()))
             self.outFile = None
             return
-
         mode = QHttp.ConnectionModeHttp
         port = url.port()
         if port == -1:
@@ -645,183 +564,40 @@ class Downloader(QDialog):
             print path
         # Download the file.
         self.httpGetId = self.http.get(path, self.outFile)
-
     def cancelDownload(self):
         self.statusLabel.setText("Download canceled.")
         self.httpRequestAborted = True
         self.http.abort()
         self.close()
-
     def httpRequestFinished(self, requestId, error):
         if requestId != self.httpGetId:
             return
-
         if self.httpRequestAborted:
             if self.outFile is not None:
                 self.outFile.close()
                 self.outFile.remove()
                 self.outFile = None
             return
-
         self.outFile.close()
-
         if error:
             self.outFile.remove()
-            QMessageBox.information(self, 'Error',
-                                    'Download failed: %s.' % self.http.errorString())
-
+            QMessageBox.information(self, 'Error','Download failed: %s.' % self.http.errorString())
         self.statusLabel.setText('Done')
 
     def readResponseHeader(self, responseHeader):
         # Check for genuine error conditions.
         if responseHeader.statusCode() not in (200, 300, 301, 302, 303, 307):
-            QMessageBox.information(self, 'Error',
-                                    'Download failed: %s.' % responseHeader.reasonPhrase())
+            QMessageBox.information(self, 'Error', 'Download failed: %s.' % responseHeader.reasonPhrase())
             self.httpRequestAborted = True
             self.http.abort()
-
     def updateDataReadProgress(self, bytesRead, totalBytes):
         if self.httpRequestAborted:
             return
         self.progressBar.setMaximum(totalBytes)
         self.progressBar.setValue(bytesRead)
-
 def main():
     app = QtGui.QApplication(sys.argv)
     ex = managerGui()
     sys.exit(app.exec_())
-
-# With thanks to Dinnerbone for this!
-class MinecraftQuery:
-    MAGIC_PREFIX = '\xFE\xFD'
-    PACKET_TYPE_CHALLENGE = 9
-    PACKET_TYPE_QUERY = 0
-    HUMAN_READABLE_NAMES = dict(
-        game_id     = "Game Name",
-        gametype    = "Game Type",
-        motd        = "Message of the Day",
-        hostname    = "Server Address",
-        hostport    = "Server Port",
-        map         = "Main World Name",
-        maxplayers  = "Maximum Players",
-        numplayers  = "Players Online",
-        players     = "List of Players",
-        plugins     = "List of Plugins",
-        raw_plugins = "Raw Plugin Info",
-        software    = "Server Software",
-        version     = "Game Version",
-        )
-    def __init__(self, host, port, timeout=10, id=0, retries=2):
-        # Fixing port before it gets this far as will crash due to QString
-        port = int(port)
-        self.addr = (host, port)
-        self.id = id
-        self.id_packed = struct.pack('>l', id)
-        self.challenge_packed = struct.pack('>l', 0)
-        self.retries = 0
-        self.max_retries = retries
-        self.socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        self.socket.settimeout(timeout)
-    def send_raw(self, data):
-        self.socket.sendto(self.MAGIC_PREFIX + data, self.addr)
-    def send_packet(self, type, data=''):
-        self.send_raw(struct.pack('>B', type) + self.id_packed + self.challenge_packed + data)
-    def read_packet(self):
-        # This buffer is normally enough but I've encountered some huge servers which exceed this limit so I'll raise it
-        # original is 1460
-        buff = self.socket.recvfrom(99999)[0]
-        type = struct.unpack('>B', buff[0])[0]
-        id = struct.unpack('>l', buff[1:5])[0]
-        return type, id, buff[5:]
-
-    def handshake(self, bypass_retries=False):
-        self.send_packet(self.PACKET_TYPE_CHALLENGE)
-        try:
-            type, id, buff = self.read_packet()
-        except:
-            if not bypass_retries:
-                self.retries += 1
-            if self.retries < self.max_retries:
-                self.handshake(bypass_retries=bypass_retries)
-                return
-            else:
-                raise
-        self.challenge = int(buff[:-1])
-        self.challenge_packed = struct.pack('>l', self.challenge)
-    def get_status(self):
-        if not hasattr(self, 'challenge'):
-            self.handshake()
-        self.send_packet(self.PACKET_TYPE_QUERY)
-        try:
-            type, id, buff = self.read_packet()
-        except:
-            self.handshake()
-            return self.get_status()
-        data = {}
-        data['motd'], data['gametype'], data['map'], data['numplayers'], data['maxplayers'], buff = buff.split('\x00', 5)
-        data['hostport'] = struct.unpack('<h', buff[:2])[0]
-        buff = buff[2:]
-        data['hostname'] = buff[:-1]
-        for key in ('numplayers', 'maxplayers'):
-            try:
-                data[key] = int(data[key])
-            except:
-                pass
-        return data
-    def get_rules(self):
-        if not hasattr(self, 'challenge'):
-            self.handshake()
-        self.send_packet(self.PACKET_TYPE_QUERY, self.id_packed)
-        try:
-            type, id, buff = self.read_packet()
-        except:
-            self.retries += 1
-            if self.retries < self.max_retries:
-                self.handshake(bypass_retries=True)
-                return self.get_rules()
-            else:
-                raise
-        data = {}
-        buff = buff[11:] # splitnum + 2 ints
-        items, players = buff.split('\x00\x00\x01player_\x00\x00') # Shamefully stole from https://github.com/barneygale/MCQuery
-        if items[:8] == 'hostname':
-            items = 'motd' + items[8:]
-        items = items.split('\x00')
-        data = dict(zip(items[::2], items[1::2]))
-        players = players[:-2]
-        if players:
-            data['players'] = players.split('\x00')
-        else:
-            data['players'] = []
-        for key in ('numplayers', 'maxplayers', 'hostport'):
-            try:
-                data[key] = int(data[key])
-            except:
-                pass
-        data['raw_plugins'] = data['plugins']
-        data['software'], data['plugins'] = self.parse_plugins(data['raw_plugins'])
-        return data
-    def parse_plugins(self, raw):
-        parts = raw.split(':', 1)
-        server = parts[0].strip()
-        plugins = []
-        if len(parts) == 2:
-            plugins = parts[1].split(';')
-            plugins = map(lambda s: s.strip(), plugins)
-        return server, plugins
-
-# Thank you to http://thejaswihr.blogspot.com.au/2008/06/python-md5-checksum-of-file.html for this.
-def md5sum(fileName, excludeLine="", includeLine=""):
-    """Compute md5 hash of the specified file"""
-    m = hashlib.md5()
-    fd = open(fileName,"rb")
-    content = fd.readlines()
-    fd.close()
-    for eachLine in content:
-        if excludeLine and eachLine.startswith(excludeLine):
-            continue
-        m.update(eachLine)
-    m.update(includeLine)
-    return m.hexdigest()
 
 main()
