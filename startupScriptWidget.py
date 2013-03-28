@@ -5,6 +5,7 @@ from PyQt4 import QtGui
 from PyQt4 import QtCore
 import os
 import sys
+import subprocess
 
 class startupScriptSetup(QtGui.QDialog):
     def __init__(self, targetDirectory):
@@ -73,5 +74,9 @@ class startupScriptSetup(QtGui.QDialog):
             QtGui.QErrorMessage.showMessage(QtGui.QErrorMessage.qtHandler(), "There was an IOError of some sort.\r\n " + e.message)
         if not os.name == "nt": # On Linux and a lot of other Unix-Likes you have to mark the file executable
             os.system('chmod +x ' + self.targetDirectory + "/startserver." + extension)
-        QtGui.QMessageBox.information(self, 'Generate Script Result', 'Script generated successfully.', QtGui.QMessageBox.Ok)
+        try:
+            subprocess.call(javaPath)
+            QtGui.QMessageBox.information(self, 'Generate Script Result', 'Script generated successfully.', QtGui.QMessageBox.Ok)
+        except OSError:
+            QtGui.QMessageBox.critical(self, 'Generate Script Result', 'It appears Java is not installed.')
         self.close()

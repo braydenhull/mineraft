@@ -10,6 +10,7 @@ from downloadWidget import Downloader
 from pluginSetupWidget import pluginSetupGui
 from essentialsSetupWidget import essentialsSetupGui
 from startupScriptWidget import startupScriptSetup
+import socket
 
 nativePluginSupport = ['Essentials']
 
@@ -266,7 +267,10 @@ class managerGui(QtGui.QDialog):
             self.browseInstallDirectoryButtonLabel.setText('Selected directory does not exist.')
     def refreshStatus(self):
         self.minecraftQuery = MinecraftQuery(self.statusIpAddress.text(), self.statusPortNumber.text())
-        self.minecraftQueryInformation = self.minecraftQuery.get_rules()
+        try:
+            self.minecraftQueryInformation = self.minecraftQuery.get_rules()
+        except socket.error, e:
+            QtGui.QMessageBox.critical(self, 'Error', 'Socket Error.\r\nIs the server running on that port/IP?\r\nIs enable-query set to true in server.properties?\r\n' + e.message)
         self.statusMaxPlayers.setText('Max Players: ' + str(self.minecraftQueryInformation['maxplayers']))
         self.statusMinecraftVersion.setText('Version: ' + self.minecraftQueryInformation['version'])
         # If you forget to clear the list then all the items double up
