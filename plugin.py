@@ -5,6 +5,7 @@ import urllib2
 from bs4 import BeautifulSoup
 import re
 
+# This guy is pro http://stackoverflow.com/a/9662362/2077881
 TAG_RE = re.compile(r'<[^>]+>')
 
 def remove_tags(text):

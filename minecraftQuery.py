@@ -22,7 +22,7 @@ class MinecraftQuery:
         software    = "Server Software",
         version     = "Game Version",
         )
-    def __init__(self, host, port, timeout=10, id=0, retries=2):
+    def __init__(self, host, port, timeout=3, id=0, retries=2): # timeout of 10 was way too long!
         # Fixing port before it gets this far as will crash due to QString
         port = int(port)
         self.addr = (host, port)
