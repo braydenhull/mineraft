@@ -10,6 +10,7 @@ from downloadWidget import Downloader
 from pluginSetupWidget import pluginSetupGui
 from essentialsSetupWidget import essentialsSetupGui
 from startupScriptWidget import startupScriptSetup
+from configureServerPropertiesWidget import configureServerProperties
 import socket
 
 nativePluginSupport = ['Essentials']
@@ -37,7 +38,7 @@ class managerGui(QtGui.QDialog):
             self.bukkitVersions.addItem(result['version'])
         self.setupStartupScriptButton = QtGui.QPushButton('Create Startup Script')
         self.startServer = QtGui.QPushButton('Start Server')
-
+        self.configureServerPropertiesButton = QtGui.QPushButton('Configure')
 
         self.pluginOfficialSupportComboBox = QtGui.QComboBox(self)
         self.pluginOfficialSupportComboBox.addItems(nativePluginSupport)
@@ -80,7 +81,8 @@ class managerGui(QtGui.QDialog):
         self.bukkitGridLayout.addWidget(self.bukkitVersions,3)
         self.bukkitGridLayout.addWidget(self.bukkitVersionsLabel,4)
         self.bukkitGridLayout.addWidget(self.setupStartupScriptButton,5)
-        self.bukkitGridLayout.addWidget(self.startServer,6)
+        self.bukkitGridLayout.addWidget(self.configureServerPropertiesButton,6)
+        self.bukkitGridLayout.addWidget(self.startServer,7)
 
         pluginGrid = QtGui.QGroupBox("Plugin")
         pluginGridLayout = QtGui.QVBoxLayout()
@@ -112,7 +114,7 @@ class managerGui(QtGui.QDialog):
         self.grid.addWidget(self.statusInstalledPlugins,7,1)
         self.grid.addWidget(self.statusMaxPlayers,8,0)
         self.grid.addWidget(self.statusMinecraftVersion,8,1)
-        self.grid.addWidget(self.statusRefreshButton,9,0)
+        self.grid.addWidget(self.statusRefreshButton,5,1)
 
         self.setLayout(self.grid)
         self.setWindowTitle('Mineraft')
@@ -126,7 +128,15 @@ class managerGui(QtGui.QDialog):
         self.statusRefreshButton.clicked.connect(self.refreshStatus)
         self.setupStartupScriptButton.clicked.connect(self.setupStartupScriptButtonClick)
         self.startServer.clicked.connect(self.startServerButtonClick)
+        self.configureServerPropertiesButton.clicked.connect(self.configureServerPropertiesButtonClicked)
 
+    def configureServerPropertiesButtonClicked(self):
+        global targetDirectory
+        if not targetDirectory == "":
+            self.dialog = configureServerProperties(targetDirectory)
+            self.dialog.exec_()
+        else:
+            QtGui.QMessageBox.critical(self, 'Error', 'Please select a directory first.')
     def startServerButtonClick(self):
         global targetDirectory
         if not targetDirectory == "":
@@ -146,7 +156,6 @@ class managerGui(QtGui.QDialog):
         else:
             #QtGui.QErrorMessage.showMessage(QtGui.QErrorMessage.qtHandler(), 'Please select a directory first.')
             QtGui.QMessageBox.critical(self, 'Error', 'Please select a directory first.')
-
     def setupStartupScriptButtonClick(self):
         global targetDirectory
         if not targetDirectory == "":
@@ -168,7 +177,6 @@ class managerGui(QtGui.QDialog):
                     self.bukkitGridLayout.addWidget(self.startupFileInfo,7)
         else:
             QtGui.QMessageBox.critical(self, 'Error', 'Please select a directory first.')
-
     def installSupportedPluginButtonPress(self):
         global targetDirectory
         if not targetDirectory == '':

@@ -1,10 +1,8 @@
 __author__ = 'brayden'
 
 from PyQt4 import QtGui
-from PyQt4.QtGui import QMessageBox, QLabel
-from plugin import getPlugin
+from PyQt4.QtGui import QMessageBox
 from downloadWidget import Downloader
-import md5sum
 import zipfile
 from zipfile import ZipFile
 from essentials import Essentials
