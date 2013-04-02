@@ -1,7 +1,6 @@
 __author__ = 'brayden'
 
 from PyQt4 import QtGui
-from PyQt4.QtGui import QMessageBox
 from PyQt4 import QtCore
 import os
 
@@ -37,6 +36,7 @@ class configureServerProperties(QtGui.QDialog):
 
         self.gamemode = QtGui.QComboBox()
         self.gamemode.addItems(['Survival', 'Creative', 'Adventure'])
+        self.gamemode.setMaximumWidth(75)
         self.gamemodeLabel = QtGui.QLabel('Gamemode')
 
         self.onlineMode = QtGui.QCheckBox()
@@ -48,13 +48,15 @@ class configureServerProperties(QtGui.QDialog):
         self.whitelistCheckBox = QtGui.QCheckBox()
         self.whitelistCheckBox.setChecked(False)
         self.whiteListLabel = QtGui.QLabel('Whitelist')
-        self.saveAndQuitButton = QtGui.QPushButton('Save && Quit') # It won't print ampersands unless you write them twice
+        self.saveAndQuitButton = QtGui.QPushButton('Save') # It won't print ampersands unless you write them twice
 
         self.maxplayers = QtGui.QSpinBox()
         self.maxplayers.setValue(20)
         self.maxplayers.setRange(0,999)
         self.maxplayers.setMaximumWidth(40)
         self.maxplayersLabel = QtGui.QLabel('Max Players')
+
+        self.configureOps = QtGui.QPushButton('Server Operators')
 
         grid = QtGui.QGridLayout()
         grid.addWidget(self.serverport,1,1)
@@ -76,13 +78,18 @@ class configureServerProperties(QtGui.QDialog):
         grid.addWidget(self.maxplayers,9,1)
         grid.addWidget(self.maxplayersLabel,9,0,QtCore.Qt.AlignRight)
         grid.addWidget(self.whitelistButton,10,0)
-        grid.addWidget(self.saveAndQuitButton,10,1)
+        grid.addWidget(self.configureOps,10,1)
+        grid.addWidget(self.saveAndQuitButton,11,0)
 
         self.setLayout(grid)
         self.setWindowTitle('Server.properties Configuration')
         self.show()
         self.whitelistButton.clicked.connect(self.openWhitelist)
         self.saveAndQuitButton.clicked.connect(self.saveAndQuit)
+        self.configureOps.clicked.connect(self.openOpsSetup)
+    def openOpsSetup(self):
+        self.dialog = opsSetup(self.targetDirectory)
+        self.dialog.exec_()
     def openWhitelist(self):
         self.dialog = whitelistSetup(self.targetDirectory)
         self.dialog.exec_()
@@ -117,11 +124,11 @@ class configureServerProperties(QtGui.QDialog):
         "generate-structures=true",
         "spawn-protection=16",
         "motd=" + self.motd.text()]
-        print propertiesFileContents
         f = open(self.targetDirectory + '/server.properties', 'w')
         for s in propertiesFileContents:
             f.write("%s\n" % s)
         f.close()
+        #self.close()
 
 class whitelistSetup(QtGui.QDialog):
     def __init__(self, targetDirectory):
@@ -130,6 +137,8 @@ class whitelistSetup(QtGui.QDialog):
         self.initUI()
     def initUI(self):
         self.userList = QtGui.QListWidget()
+        if not os.path.exists(self.targetDirectory + '/white-list.txt'):
+            open(self.targetDirectory + '/white-list.txt', 'w').close()
         f = open(self.targetDirectory + '/white-list.txt' ,'r')
         for s in f.readlines():
             print s
@@ -172,6 +181,62 @@ class whitelistSetup(QtGui.QDialog):
         print labels
         print self.targetDirectory
         f = open(self.targetDirectory + '/white-list.txt', 'w')
+        for item in labels:
+            f.write("%s\n" % item)
+        f.close()
+        self.close()
+
+class opsSetup(QtGui.QDialog):
+    def __init__(self, targetDirectory):
+        super(opsSetup, self).__init__()
+        self.targetDirectory = targetDirectory
+        self.initUI()
+    def initUI(self):
+        self.userList = QtGui.QListWidget()
+        if not os.path.exists(self.targetDirectory + '/ops.txt'):
+            open(self.targetDirectory + '/ops.txt', 'w').close()
+        f = open(self.targetDirectory + '/ops.txt', 'r')
+        for s in f.readlines():
+            self.userList.addItem(s.strip())
+        f.close()
+        self.addUser = QtGui.QPushButton('Add')
+        self.userField = QtGui.QLineEdit()
+        self.userField.setMaxLength(16)
+        self.userField.setFixedWidth(105)
+        self.information = QtGui.QLabel('Operator Privileges\r\nInsert username and press Add')
+        self.deleteUser = QtGui.QPushButton('Delete')
+        self.saveAndClose = QtGui.QPushButton('Save && Close') # Needs && to print &
+
+        grid = QtGui.QGridLayout()
+        grid.addWidget(self.information,0,0)
+        grid.addWidget(self.userList,1,0)
+        grid.addWidget(self.userField,2,0,QtCore.Qt.AlignLeft)
+        grid.addWidget(self.addUser,2,0,QtCore.Qt.AlignRight)
+        grid.addWidget(self.deleteUser,3,0,QtCore.Qt.AlignLeft)
+        grid.addWidget(self.saveAndClose,3,0,QtCore.Qt.AlignRight)
+        self.addUser.clicked.connect(self.addUserToList)
+        self.deleteUser.clicked.connect(self.deleteUserFromList)
+        self.saveAndClose.clicked.connect(self.saveWhitelist)
+
+        self.setLayout(grid)
+        self.setWindowTitle('Ops Configuration')
+        self.show()
+
+    def addUserToList(self):
+        self.userList.addItem(self.userField.text())
+        self.userField.clear()
+
+    def deleteUserFromList(self):
+        self.userList.takeItem(self.userList.currentRow()) # God damn takeItem? Terrible name :(
+
+    def saveWhitelist(self):
+        items = []
+        for s in xrange(self.userList.count()):
+            items.append(self.userList.item(s))
+        labels = [i.text() for i in items]
+        print labels
+        print self.targetDirectory
+        f = open(self.targetDirectory + '/ops.txt', 'w')
         for item in labels:
             f.write("%s\n" % item)
         f.close()
