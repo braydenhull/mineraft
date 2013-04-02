@@ -289,12 +289,12 @@ class managerGui(QtGui.QDialog):
 
 
 def main():
-    targetDirectory = 'testServer/'
-    # app = QtGui.QApplication(sys.argv)
-    # ex = managerGui()
-    # sys.exit(app.exec_())
+    #targetDirectory = 'testServer/'
     app = QtGui.QApplication(sys.argv)
-    ex = configureServerProperties(targetDirectory)
+    ex = managerGui()
     sys.exit(app.exec_())
+    #app = QtGui.QApplication(sys.argv)
+    #ex = configureServerProperties(targetDirectory)
+    #sys.exit(app.exec_())
 
 main()
