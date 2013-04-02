@@ -148,7 +148,7 @@ class managerGui(QtGui.QDialog):
                 extension = '.sh'
             os.chdir(targetDirectory)
             if os.name == 'nt':
-                os.system('start ' + targetDirectory + '/startserver' + extension)
+                os.system('start startserver' + extension)
             elif sys.platform == 'darwin':
                 os.system('open ' + targetDirectory + '/startserver' + extension + '&') # I haven't tested if & is necessary but I'll assume it is
             else:
